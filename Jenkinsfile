@@ -1,23 +1,24 @@
-node{
-   stage('SCM Checkout'){
-     git 'https://github.com/javahometech/my-app'
-   }
-   stage('Compile-Package'){
+node {
+    def app
+
+    stage('SCM checkout') {
+        /* Let's make sure we have the repository cloned to our workspace */
+
+        git credentialsId: 'github-creds3', url: 'https://github.com/rajharih1/my-app'
+    }
+	
+	stage('Compile-Package'){
       // Get maven home path
       def mvnHome =  tool name: 'maven-3', type: 'maven'   
       sh "${mvnHome}/bin/mvn package"
    }
-   stage('Email Notification'){
-      mail bcc: '', body: '''Hi Welcome to jenkins email alerts
-      Thanks
-      Hari''', cc: '', from: '', replyTo: '', subject: 'Jenkins Job', to: 'hari.kammana@gmail.com'
-   }
-   stage('Slack Notification'){
-       slackSend baseUrl: 'https://hooks.slack.com/services/',
-       channel: '#jenkins-pipeline-demo',
-       color: 'good', 
-       message: 'Welcome to Jenkins, Slack!', 
-       teamDomain: 'javahomecloud',
-       tokenCredentialId: 'slack-demo'
-   }
+    stage('Build Docker Image'){
+        sh 'docker build -t hubrajesh/sample-app:1.0 .'
+    }
+    stage('Push Docker Image'){
+        withCredentials([string(credentialsId: 'docker-pwd', variable: 'docker-password')]) {
+            sh "docker login -u hubrajesh -p ${docker-password}"
+        }
+            sh 'docker push hubrajesh/sample-app:1.0'
+    }
 }
